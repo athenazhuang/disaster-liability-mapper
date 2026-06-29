@@ -10,14 +10,13 @@
     --bg: #f7f6f3; --surface: #ffffff; --surface-2: #f1f0ec;
     --border: #e2e0d8; --border-strong: #c8c6bc;
     --text: #1a1a18; --text-2: #5a5a54; --text-3: #8a8a82;
-    --purple: #534AB7; --purple-bg: #EEEDFE; --purple-text: #3C3489;
-    --radius: 8px;
+    --purple: #534AB7; --purple-text: #3C3489; --radius: 8px;
   }
   body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
   .site-header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 1rem 2rem; display: flex; align-items: baseline; gap: 12px; }
   .site-header h1 { font-size: 16px; font-weight: 600; }
   .site-header span { font-size: 13px; color: var(--text-3); }
-  .layout { display: grid; grid-template-columns: 320px 1fr; min-height: calc(100vh - 53px); }
+  .layout { display: grid; grid-template-columns: 320px 1fr; min-height: calc(100vh - 53px - 44px); }
   .sidebar { background: var(--surface); border-right: 1px solid var(--border); padding: 1.5rem; display: flex; flex-direction: column; gap: 1.25rem; overflow-y: auto; }
   .field-label { font-size: 11px; font-weight: 600; color: var(--text-3); letter-spacing: .06em; text-transform: uppercase; }
   .field-label span { font-weight: 400; text-transform: none; letter-spacing: 0; margin-left: 4px; }
@@ -55,7 +54,7 @@
   .matrix-card-header span { font-size: 12px; color: var(--text-3); }
   .matrix-scroll { overflow-x: auto; }
   table { width: 100%; border-collapse: collapse; }
-  thead th { font-size: 11px; font-weight: 600; color: var(--text-3); padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; background: var(--surface-2); letter-spacing: .03em; }
+  thead th { font-size: 11px; font-weight: 600; color: var(--text-3); padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; background: var(--surface-2); }
   thead th.cc { text-align: center; min-width: 155px; }
   tbody td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; font-size: 13px; }
   tbody tr:last-child td { border-bottom: none; }
@@ -74,7 +73,7 @@
   .pdot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 5px; }
   .reform-card { background: var(--surface); border-left: 3px solid var(--purple); border-radius: 0 12px 12px 0; padding: 16px 18px; font-size: 13px; color: var(--text-2); line-height: 1.7; }
   .reform-label { font-size: 11px; font-weight: 600; color: var(--purple-text); letter-spacing: .06em; text-transform: uppercase; margin-bottom: 8px; }
-  .footer { text-align: center; padding: 1rem; font-size: 12px; color: var(--text-3); border-top: 1px solid var(--border); background: var(--surface); }
+  .footer { text-align: center; padding: 12px; font-size: 12px; color: var(--text-3); border-top: 1px solid var(--border); background: var(--surface); }
   .footer a { color: var(--purple-text); text-decoration: none; }
   @media (max-width: 768px) { .layout { grid-template-columns: 1fr; } .sidebar { border-right: none; border-bottom: 1px solid var(--border); } .main { padding: 1.25rem; } }
 </style>
@@ -83,12 +82,11 @@
 
 <header class="site-header">
   <h1>Disaster Liability Gap Mapper</h1>
-  <span>Paste any statute — Claude maps legal accountability across cases</span>
+  <span>Paste any statute — AI maps legal accountability across cases</span>
 </header>
 
 <div class="layout">
   <aside class="sidebar">
-
     <div style="display:flex;flex-direction:column;gap:8px">
       <label class="field-label">Statute <span>— paste any law or regulation</span></label>
       <div class="preset-label">Load a preset:</div>
@@ -99,9 +97,7 @@
       </div>
       <textarea id="statute-input" placeholder="Paste any statute text here — e.g. from law.cornell.edu or congress.gov…"></textarea>
     </div>
-
     <hr class="divider">
-
     <div style="display:flex;flex-direction:column;gap:12px">
       <label class="field-label">Disaster cases <span>— edit or replace any</span></label>
       <div class="case-row">
@@ -120,9 +116,7 @@
         <textarea class="case-ta" id="case3-text">Hurricane Katrina, August 29, 2005. Army Corps of Engineers levees failed due to design defects. FEMA response severely delayed. Fifth Circuit held discretionary function immunity barred most FTCA claims against Army Corps. 1,800+ deaths.</textarea>
       </div>
     </div>
-
     <button class="run-btn" id="run-btn" onclick="runAnalysis()">Analyze liability gaps →</button>
-
   </aside>
 
   <main class="main" id="main-panel">
@@ -139,6 +133,8 @@
 </footer>
 
 <script>
+var GEMINI_KEY = 'AQ.Ab8RN6JEIx1VsoHLY1yv8hJsBjbpuePDuEAy7dC5jSP5aPNqmQ';
+
 var PRESETS = {
   stafford: 'Robert T. Stafford Disaster Relief and Emergency Assistance Act, §403 (42 U.S.C. §5170b): Federal agencies may on the direction of the President provide assistance essential to meeting immediate threats to life and property resulting from a major disaster. Federal agencies shall coordinate all disaster relief assistance and provide accelerated Federal assistance where necessary to save lives, prevent human suffering, or mitigate severe damage. No liability shall attach to the United States Government for any claim based upon the exercise or performance of or the failure to exercise or perform a discretionary function or duty by a Federal employee.',
   ftca: 'Federal Tort Claims Act, 28 U.S.C. §2680: The provisions of this chapter shall not apply to any claim based upon the exercise or performance of or the failure to exercise or perform a discretionary function or duty on the part of a federal agency or employee of the Government, whether or not the discretion involved be abused. The United States shall be liable in the same manner and to the same extent as a private individual under like circumstances, but shall not be liable for punitive damages.',
@@ -221,23 +217,31 @@ function runAnalysis() {
   document.getElementById('run-btn').disabled = true;
   document.getElementById('main-panel').innerHTML = '<div class="loading-state"><div class="spinner"></div><span>Analyzing all cases against your statute…</span></div>';
 
-  fetch('/api/analyze', {
+  var casesText = '';
+  if(c1t) casesText += '1. '+c1n.toUpperCase()+': '+c1t+'\n\n';
+  if(c2t) casesText += '2. '+c2n.toUpperCase()+': '+c2t+'\n\n';
+  if(c3t) casesText += '3. '+c3n.toUpperCase()+': '+c3t;
+
+  var prompt = 'You are a legal analyst specializing in disaster liability law. Analyze this statute against the disaster scenarios.\n\nSTATUTE:\n'+statute+'\n\nCASES:\n'+casesText+'\n\nReturn ONLY valid JSON with NO markdown, NO backticks, NO explanation:\n{"actors":["Utility company","Federal agency","State regulator","Local government","Insurer"],"matrix":{"case1":{"Utility company":{"status":"STATUS","note":"under 12 words"},"Federal agency":{"status":"STATUS","note":"under 12 words"},"State regulator":{"status":"STATUS","note":"under 12 words"},"Local government":{"status":"STATUS","note":"under 12 words"},"Insurer":{"status":"STATUS","note":"under 12 words"}},"case2":{"Utility company":{"status":"STATUS","note":"under 12 words"},"Federal agency":{"status":"STATUS","note":"under 12 words"},"State regulator":{"status":"STATUS","note":"under 12 words"},"Local government":{"status":"STATUS","note":"under 12 words"},"Insurer":{"status":"STATUS","note":"under 12 words"}},"case3":{"Utility company":{"status":"STATUS","note":"under 12 words"},"Federal agency":{"status":"STATUS","note":"under 12 words"},"State regulator":{"status":"STATUS","note":"under 12 words"},"Local government":{"status":"STATUS","note":"under 12 words"},"Insurer":{"status":"STATUS","note":"under 12 words"}}},"patterns":["Cross-case observation 1","Observation 2","Observation 3"],"reform_argument":"2-3 sentences arguing for specific legislative reform naming the exact provision that fails."}\n\nReplace every STATUS with exactly one of: Gap — no liability path | Partial — capped/limited | Covered — clear path | Contested — in litigation';
+
+  var url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + GEMINI_KEY;
+
+  fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      statute: statute,
-      cases: [
-        { name: c1n, text: c1t },
-        { name: c2n, text: c2t },
-        { name: c3n, text: c3t }
-      ]
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: { temperature: 0.2, maxOutputTokens: 2000 }
     })
   })
   .then(function(r){
-    if(!r.ok) return r.json().then(function(e){ throw new Error(e.error||'Server error '+r.status); });
+    if(!r.ok) return r.json().then(function(e){ throw new Error(e.error&&e.error.message?e.error.message:'API error '+r.status); });
     return r.json();
   })
-  .then(function(parsed){
+  .then(function(data){
+    var text = data.candidates&&data.candidates[0]&&data.candidates[0].content&&data.candidates[0].content.parts&&data.candidates[0].content.parts[0]?data.candidates[0].content.parts[0].text:'';
+    var clean = text.replace(/```json/g,'').replace(/```/g,'').trim();
+    var parsed = JSON.parse(clean);
     renderResults(parsed, [c1n, c2n, c3n]);
   })
   .catch(function(err){
