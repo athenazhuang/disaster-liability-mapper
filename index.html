@@ -224,7 +224,8 @@ function runAnalysis() {
 
   var prompt = 'You are a legal analyst specializing in disaster liability law. Analyze this statute against the disaster scenarios.\n\nSTATUTE:\n'+statute+'\n\nCASES:\n'+casesText+'\n\nReturn ONLY valid JSON with NO markdown, NO backticks, NO explanation:\n{"actors":["Utility company","Federal agency","State regulator","Local government","Insurer"],"matrix":{"case1":{"Utility company":{"status":"STATUS","note":"under 12 words"},"Federal agency":{"status":"STATUS","note":"under 12 words"},"State regulator":{"status":"STATUS","note":"under 12 words"},"Local government":{"status":"STATUS","note":"under 12 words"},"Insurer":{"status":"STATUS","note":"under 12 words"}},"case2":{"Utility company":{"status":"STATUS","note":"under 12 words"},"Federal agency":{"status":"STATUS","note":"under 12 words"},"State regulator":{"status":"STATUS","note":"under 12 words"},"Local government":{"status":"STATUS","note":"under 12 words"},"Insurer":{"status":"STATUS","note":"under 12 words"}},"case3":{"Utility company":{"status":"STATUS","note":"under 12 words"},"Federal agency":{"status":"STATUS","note":"under 12 words"},"State regulator":{"status":"STATUS","note":"under 12 words"},"Local government":{"status":"STATUS","note":"under 12 words"},"Insurer":{"status":"STATUS","note":"under 12 words"}}},"patterns":["Cross-case observation 1","Observation 2","Observation 3"],"reform_argument":"2-3 sentences arguing for specific legislative reform naming the exact provision that fails."}\n\nReplace every STATUS with exactly one of: Gap — no liability path | Partial — capped/limited | Covered — clear path | Contested — in litigation';
 
-  var url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + GEMINI_KEY;
+  // Try v1beta first, fall back to v1 if needed
+  var url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=' + GEMINI_KEY;
 
   fetch(url, {
     method: 'POST',
@@ -234,12 +235,11 @@ function runAnalysis() {
       generationConfig: { temperature: 0.2, maxOutputTokens: 2000 }
     })
   })
-  .then(function(r){
-    if(!r.ok) return r.json().then(function(e){ throw new Error(e.error&&e.error.message?e.error.message:'API error '+r.status); });
-    return r.json();
-  })
+  .then(function(r){ return r.json(); })
   .then(function(data){
+    if(data.error) throw new Error(data.error.message||'API error');
     var text = data.candidates&&data.candidates[0]&&data.candidates[0].content&&data.candidates[0].content.parts&&data.candidates[0].content.parts[0]?data.candidates[0].content.parts[0].text:'';
+    if(!text) throw new Error('No response from AI');
     var clean = text.replace(/```json/g,'').replace(/```/g,'').trim();
     var parsed = JSON.parse(clean);
     renderResults(parsed, [c1n, c2n, c3n]);
