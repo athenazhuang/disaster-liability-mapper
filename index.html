@@ -33,15 +33,13 @@
   .case-row { display: flex; flex-direction: column; gap: 5px; }
   .case-name-label { font-size: 12px; font-weight: 500; color: var(--text-2); }
   .case-ta { min-height: 72px; font-size: 12px; }
-  .run-btn { width: 100%; padding: 11px; font-size: 14px; font-weight: 600; border-radius: var(--radius); border: none; background: var(--purple); color: #fff; cursor: pointer; margin-top: auto; }
+  .run-btn { width: 100%; padding: 11px; font-size: 14px; font-weight: 600; border-radius: var(--radius); border: none; background: var(--purple); color: #fff; cursor: pointer; margin-top: auto; transition: opacity 0.15s; }
   .run-btn:hover { opacity: .88; }
   .run-btn:disabled { opacity: .4; cursor: not-allowed; }
-  .api-note { font-size: 11px; color: var(--text-3); line-height: 1.5; }
-  .api-note a { color: var(--purple); text-decoration: none; }
   .main { padding: 1.75rem 2rem; display: flex; flex-direction: column; gap: 1.5rem; }
   .empty-state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 3rem; color: var(--text-3); gap: 8px; }
   .empty-state h2 { font-size: 15px; font-weight: 500; color: var(--text-2); }
-  .empty-state p { font-size: 13px; line-height: 1.6; max-width: 340px; }
+  .empty-state p { font-size: 13px; line-height: 1.6; max-width: 360px; }
   .loading-state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; color: var(--text-3); font-size: 13px; }
   .spinner { width: 28px; height: 28px; border: 2px solid var(--border-strong); border-top-color: var(--purple); border-radius: 50%; animation: spin .8s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
@@ -76,6 +74,8 @@
   .pdot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 5px; }
   .reform-card { background: var(--surface); border-left: 3px solid var(--purple); border-radius: 0 12px 12px 0; padding: 16px 18px; font-size: 13px; color: var(--text-2); line-height: 1.7; }
   .reform-label { font-size: 11px; font-weight: 600; color: var(--purple-text); letter-spacing: .06em; text-transform: uppercase; margin-bottom: 8px; }
+  .footer { text-align: center; padding: 1rem; font-size: 12px; color: var(--text-3); border-top: 1px solid var(--border); background: var(--surface); }
+  .footer a { color: var(--purple-text); text-decoration: none; }
   @media (max-width: 768px) { .layout { grid-template-columns: 1fr; } .sidebar { border-right: none; border-bottom: 1px solid var(--border); } .main { padding: 1.25rem; } }
 </style>
 </head>
@@ -89,14 +89,6 @@
 <div class="layout">
   <aside class="sidebar">
 
-    <div style="display:flex;flex-direction:column;gap:6px">
-      <label class="field-label">Anthropic API key</label>
-      <input type="password" class="input-field" id="api-key" placeholder="sk-ant-..." autocomplete="off">
-      <p class="api-note">Get a free key at <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a>. Your key stays in your browser only.</p>
-    </div>
-
-    <hr class="divider">
-
     <div style="display:flex;flex-direction:column;gap:8px">
       <label class="field-label">Statute <span>— paste any law or regulation</span></label>
       <div class="preset-label">Load a preset:</div>
@@ -105,7 +97,7 @@
         <button class="preset-btn" onclick="loadStatute('ftca')">Fed. Tort Claims Act</button>
         <button class="preset-btn" onclick="loadStatute('puc')">CA PUC §451</button>
       </div>
-      <textarea id="statute-input" placeholder="Paste any statute text here…"></textarea>
+      <textarea id="statute-input" placeholder="Paste any statute text here — e.g. from law.cornell.edu or congress.gov…"></textarea>
     </div>
 
     <hr class="divider">
@@ -136,10 +128,15 @@
   <main class="main" id="main-panel">
     <div class="empty-state">
       <h2>Ready to analyze</h2>
-      <p>Enter your API key, paste any statute (or use a preset), then click Analyze. The map will show which actors face legal accountability — and where the law fails.</p>
+      <p>Select a statute preset or paste your own, customize the disaster cases if you want, then click Analyze.</p>
+      <p style="margin-top:8px">The map shows which actors face legal accountability — and where the law fails — across all three cases simultaneously.</p>
     </div>
   </main>
 </div>
+
+<footer class="footer">
+  Built by <a href="https://www.linkedin.com/in/athena-zhuang/" target="_blank">Athena Zhuang</a> · Pre-law research project on disaster accountability and climate liability
+</footer>
 
 <script>
 var PRESETS = {
@@ -163,10 +160,9 @@ function renderResults(parsed, names) {
   var actors = parsed.actors || ['Utility company','Federal agency','State regulator','Local government','Insurer'];
   var keys = ['case1','case2','case3'];
   var gapCount = 0;
-  keys.forEach(function(k){ actors.forEach(function(a){ if(badgeClass(((parsed.matrix||{})[k]||{})[a] && ((parsed.matrix||{})[k]||{})[a].status)==='b-gap') gapCount++; }); });
+  keys.forEach(function(k){ actors.forEach(function(a){ if(badgeClass(((parsed.matrix||{})[k]||{})[a]&&((parsed.matrix||{})[k]||{})[a].status)==='b-gap') gapCount++; }); });
 
   var h = '<div class="results">';
-
   h += '<div><div class="section-head">Coverage key</div><div class="legend">';
   h += '<div class="legend-item"><div class="ldot" style="background:#E24B4A"></div>Gap — no liability path</div>';
   h += '<div class="legend-item"><div class="ldot" style="background:#EF9F27"></div>Partial — capped or limited</div>';
@@ -175,7 +171,7 @@ function renderResults(parsed, names) {
   h += '</div></div>';
 
   h += '<div><div class="section-head">Actor liability matrix</div><div class="matrix-card">';
-  h += '<div class="matrix-card-header"><h2>Cross-case liability coverage</h2><span>' + gapCount + ' gaps across ' + keys.length + ' cases</span></div>';
+  h += '<div class="matrix-card-header"><h2>Cross-case liability coverage</h2><span>'+gapCount+' gaps across '+keys.length+' cases</span></div>';
   h += '<div class="matrix-scroll"><table><thead><tr><th>Actor</th>';
   names.forEach(function(n){ h += '<th class="cc">'+n+'</th>'; });
   h += '</tr></thead><tbody>';
@@ -212,7 +208,6 @@ function renderResults(parsed, names) {
 }
 
 function runAnalysis() {
-  var apiKey = document.getElementById('api-key').value.trim();
   var statute = document.getElementById('statute-input').value.trim();
   var c1n = document.getElementById('case1-name').value.trim()||'Case 1';
   var c1t = document.getElementById('case1-text').value.trim();
@@ -221,42 +216,32 @@ function runAnalysis() {
   var c3n = document.getElementById('case3-name').value.trim()||'Case 3';
   var c3t = document.getElementById('case3-text').value.trim();
 
-  if(!apiKey){alert('Please enter your Anthropic API key.');return;}
-  if(!statute){alert('Please paste a statute or use a preset.');return;}
+  if(!statute){ alert('Please paste a statute or use a preset.'); return; }
 
   document.getElementById('run-btn').disabled = true;
   document.getElementById('main-panel').innerHTML = '<div class="loading-state"><div class="spinner"></div><span>Analyzing all cases against your statute…</span></div>';
 
-  var casesText = '';
-  if(c1t) casesText += '1. '+c1n.toUpperCase()+': '+c1t+'\n\n';
-  if(c2t) casesText += '2. '+c2n.toUpperCase()+': '+c2t+'\n\n';
-  if(c3t) casesText += '3. '+c3n.toUpperCase()+': '+c3t;
-
-  var prompt = 'You are a legal analyst specializing in disaster liability law. Analyze this statute against the disaster scenarios.\n\nSTATUTE:\n'+statute+'\n\nCASES:\n'+casesText+'\n\nReturn ONLY valid JSON with NO markdown, NO backticks, NO explanation:\n{"actors":["Utility company","Federal agency","State regulator","Local government","Insurer"],"matrix":{"case1":{"Utility company":{"status":"STATUS","note":"under 12 words"},"Federal agency":{"status":"STATUS","note":"under 12 words"},"State regulator":{"status":"STATUS","note":"under 12 words"},"Local government":{"status":"STATUS","note":"under 12 words"},"Insurer":{"status":"STATUS","note":"under 12 words"}},"case2":{"Utility company":{"status":"STATUS","note":"under 12 words"},"Federal agency":{"status":"STATUS","note":"under 12 words"},"State regulator":{"status":"STATUS","note":"under 12 words"},"Local government":{"status":"STATUS","note":"under 12 words"},"Insurer":{"status":"STATUS","note":"under 12 words"}},"case3":{"Utility company":{"status":"STATUS","note":"under 12 words"},"Federal agency":{"status":"STATUS","note":"under 12 words"},"State regulator":{"status":"STATUS","note":"under 12 words"},"Local government":{"status":"STATUS","note":"under 12 words"},"Insurer":{"status":"STATUS","note":"under 12 words"}}},"patterns":["Cross-case observation 1","Observation 2","Observation 3"],"reform_argument":"2-3 sentences arguing for specific legislative reform naming the exact provision that fails."}\n\nReplace every STATUS with exactly one of: Gap — no liability path | Partial — capped/limited | Covered — clear path | Contested — in litigation\nBase all analysis on the statute text provided.';
-
-  fetch('https://api.anthropic.com/v1/messages', {
+  fetch('/api/analyze', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-calls': 'true'
-    },
-    body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 2000, messages: [{role:'user',content:prompt}] })
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      statute: statute,
+      cases: [
+        { name: c1n, text: c1t },
+        { name: c2n, text: c2t },
+        { name: c3n, text: c3t }
+      ]
+    })
   })
   .then(function(r){
-    if(!r.ok) return r.json().then(function(e){throw new Error(e.error&&e.error.message?e.error.message:'API error '+r.status);});
+    if(!r.ok) return r.json().then(function(e){ throw new Error(e.error||'Server error '+r.status); });
     return r.json();
   })
-  .then(function(data){
-    var text='';
-    (data.content||[]).forEach(function(b){if(b.type==='text')text+=b.text;});
-    var clean=text.replace(/```json/g,'').replace(/```/g,'').trim();
-    var parsed=JSON.parse(clean);
-    renderResults(parsed,[c1n,c2n,c3n]);
+  .then(function(parsed){
+    renderResults(parsed, [c1n, c2n, c3n]);
   })
   .catch(function(err){
-    document.getElementById('main-panel').innerHTML='<div style="padding:1.5rem"><div class="error-box"><strong>Error:</strong> '+err.message+' — Check your API key is correct and try again.</div></div>';
+    document.getElementById('main-panel').innerHTML='<div style="padding:1.5rem"><div class="error-box"><strong>Error:</strong> '+err.message+'</div></div>';
   })
   .finally(function(){ document.getElementById('run-btn').disabled=false; });
 }
