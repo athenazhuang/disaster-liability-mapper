@@ -4,7 +4,7 @@ A tool for analyzing how U.S. disaster law assigns — and fails to assign — l
 
 Built as a pre-law research project exploring the gap between catastrophic disaster outcomes and meaningful legal recourse for survivors.
 
-**[Live demo →](https://yourusername.github.io/disaster-liability-mapper)**
+**[Live demo →](https://athenazhuang.github.io/disaster-liability-mapper)**
 
 ---
 
