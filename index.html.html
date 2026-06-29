@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Disaster Liability Gap Mapper</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #f7f6f3; --surface: #ffffff; --surface-2: #f1f0ec;
+    --border: #e2e0d8; --border-strong: #c8c6bc;
+    --text: #1a1a18; --text-2: #5a5a54; --text-3: #8a8a82;
+    --purple: #534AB7; --purple-bg: #EEEDFE; --purple-text: #3C3489;
+    --radius: 8px;
+  }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+  .site-header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 1rem 2rem; display: flex; align-items: baseline; gap: 12px; }
+  .site-header h1 { font-size: 16px; font-weight: 600; }
+  .site-header span { font-size: 13px; color: var(--text-3); }
+  .layout { display: grid; grid-template-columns: 320px 1fr; min-height: calc(100vh - 53px); }
+  .sidebar { background: var(--surface); border-right: 1px solid var(--border); padding: 1.5rem; display: flex; flex-direction: column; gap: 1.25rem; overflow-y: auto; }
+  .field-label { font-size: 11px; font-weight: 600; color: var(--text-3); letter-spacing: .06em; text-transform: uppercase; }
+  .field-label span { font-weight: 400; text-transform: none; letter-spacing: 0; margin-left: 4px; }
+  textarea { width: 100%; font-size: 13px; line-height: 1.55; font-family: inherit; padding: 10px 12px; border: 1px solid var(--border-strong); border-radius: var(--radius); background: var(--bg); color: var(--text); resize: vertical; min-height: 110px; }
+  textarea:focus { outline: none; border-color: var(--purple); }
+  .input-field { width: 100%; font-size: 13px; font-family: inherit; padding: 8px 12px; border: 1px solid var(--border-strong); border-radius: var(--radius); background: var(--bg); color: var(--text); }
+  .input-field:focus { outline: none; border-color: var(--purple); }
+  .preset-label { font-size: 11px; color: var(--text-3); margin-bottom: 3px; }
+  .presets { display: flex; flex-wrap: wrap; gap: 5px; }
+  .preset-btn { font-size: 11px; padding: 3px 9px; border-radius: 20px; border: 1px solid var(--border-strong); background: var(--surface-2); color: var(--text-2); cursor: pointer; }
+  .preset-btn:hover { border-color: var(--purple); color: var(--purple-text); }
+  .divider { border: none; border-top: 1px solid var(--border); }
+  .case-row { display: flex; flex-direction: column; gap: 5px; }
+  .case-name-label { font-size: 12px; font-weight: 500; color: var(--text-2); }
+  .case-ta { min-height: 72px; font-size: 12px; }
+  .run-btn { width: 100%; padding: 11px; font-size: 14px; font-weight: 600; border-radius: var(--radius); border: none; background: var(--purple); color: #fff; cursor: pointer; margin-top: auto; }
+  .run-btn:hover { opacity: .88; }
+  .run-btn:disabled { opacity: .4; cursor: not-allowed; }
+  .api-note { font-size: 11px; color: var(--text-3); line-height: 1.5; }
+  .api-note a { color: var(--purple); text-decoration: none; }
+  .main { padding: 1.75rem 2rem; display: flex; flex-direction: column; gap: 1.5rem; }
+  .empty-state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 3rem; color: var(--text-3); gap: 8px; }
+  .empty-state h2 { font-size: 15px; font-weight: 500; color: var(--text-2); }
+  .empty-state p { font-size: 13px; line-height: 1.6; max-width: 340px; }
+  .loading-state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; color: var(--text-3); font-size: 13px; }
+  .spinner { width: 28px; height: 28px; border: 2px solid var(--border-strong); border-top-color: var(--purple); border-radius: 50%; animation: spin .8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .error-box { background: #FCEBEB; border: 1px solid #F7C1C1; border-radius: var(--radius); padding: 12px 15px; font-size: 13px; color: #791F1F; line-height: 1.5; }
+  .results { display: flex; flex-direction: column; gap: 1.5rem; }
+  .section-head { font-size: 11px; font-weight: 600; color: var(--text-3); letter-spacing: .06em; text-transform: uppercase; margin-bottom: 10px; }
+  .legend { display: flex; gap: 14px; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--text-2); }
+  .ldot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+  .matrix-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+  .matrix-card-header { padding: 14px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: baseline; gap: 10px; }
+  .matrix-card-header h2 { font-size: 14px; font-weight: 600; }
+  .matrix-card-header span { font-size: 12px; color: var(--text-3); }
+  .matrix-scroll { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; }
+  thead th { font-size: 11px; font-weight: 600; color: var(--text-3); padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; background: var(--surface-2); letter-spacing: .03em; }
+  thead th.cc { text-align: center; min-width: 155px; }
+  tbody td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; font-size: 13px; }
+  tbody tr:last-child td { border-bottom: none; }
+  .ac { font-weight: 500; white-space: nowrap; }
+  .sc { text-align: center; }
+  .badge { display: inline-block; font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 20px; white-space: nowrap; }
+  .b-gap       { background: #FCEBEB; color: #A32D2D; }
+  .b-partial   { background: #FAEEDA; color: #854F0B; }
+  .b-covered   { background: #EAF3DE; color: #3B6D11; }
+  .b-contested { background: #EEEDFE; color: #3C3489; }
+  .b-unknown   { background: var(--surface-2); color: var(--text-3); }
+  .cell-note { font-size: 11px; color: var(--text-3); margin-top: 4px; line-height: 1.4; }
+  .pattern-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; }
+  .pattern-item { display: flex; gap: 10px; align-items: flex-start; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13px; color: var(--text-2); line-height: 1.6; }
+  .pattern-item:last-child { border-bottom: none; padding-bottom: 0; }
+  .pdot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 5px; }
+  .reform-card { background: var(--surface); border-left: 3px solid var(--purple); border-radius: 0 12px 12px 0; padding: 16px 18px; font-size: 13px; color: var(--text-2); line-height: 1.7; }
+  .reform-label { font-size: 11px; font-weight: 600; color: var(--purple-text); letter-spacing: .06em; text-transform: uppercase; margin-bottom: 8px; }
+  @media (max-width: 768px) { .layout { grid-template-columns: 1fr; } .sidebar { border-right: none; border-bottom: 1px solid var(--border); } .main { padding: 1.25rem; } }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <h1>Disaster Liability Gap Mapper</h1>
+  <span>Paste any statute — Claude maps legal accountability across cases</span>
+</header>
+
+<div class="layout">
+  <aside class="sidebar">
+
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <label class="field-label">Anthropic API key</label>
+      <input type="password" class="input-field" id="api-key" placeholder="sk-ant-..." autocomplete="off">
+      <p class="api-note">Get a free key at <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a>. Your key stays in your browser only.</p>
+    </div>
+
+    <hr class="divider">
+
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <label class="field-label">Statute <span>— paste any law or regulation</span></label>
+      <div class="preset-label">Load a preset:</div>
+      <div class="presets">
+        <button class="preset-btn" onclick="loadStatute('stafford')">Stafford Act §403</button>
+        <button class="preset-btn" onclick="loadStatute('ftca')">Fed. Tort Claims Act</button>
+        <button class="preset-btn" onclick="loadStatute('puc')">CA PUC §451</button>
+      </div>
+      <textarea id="statute-input" placeholder="Paste any statute text here…"></textarea>
+    </div>
+
+    <hr class="divider">
+
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <label class="field-label">Disaster cases <span>— edit or replace any</span></label>
+      <div class="case-row">
+        <div class="case-name-label">Case 1</div>
+        <input class="input-field" id="case1-name" value="Lahaina 2023">
+        <textarea class="case-ta" id="case1-text">August 8, 2023 Lahaina wildfire, Maui, Hawaii. Hawaiian Electric (HECO) did not de-energize power lines despite NWS Red Flag warnings. Downed lines believed to ignite fire. Hawaii Emergency Management Agency did not activate sirens. Maui County sent no reverse-911 alerts. 100+ deaths, historic town destroyed.</textarea>
+      </div>
+      <div class="case-row">
+        <div class="case-name-label">Case 2</div>
+        <input class="input-field" id="case2-name" value="Camp Fire 2018">
+        <textarea class="case-ta" id="case2-text">November 8, 2018 Camp Fire near Paradise, California. PG&E transmission lines caused ignition. PG&E pleaded guilty to 84 counts of involuntary manslaughter. CA PUC had cited PG&E for vegetation management violations. FEMA response criticized for slow trailer deployment. 85 deaths, 18,804 structures destroyed.</textarea>
+      </div>
+      <div class="case-row">
+        <div class="case-name-label">Case 3</div>
+        <input class="input-field" id="case3-name" value="Katrina 2005">
+        <textarea class="case-ta" id="case3-text">Hurricane Katrina, August 29, 2005. Army Corps of Engineers levees failed due to design defects. FEMA response severely delayed. Fifth Circuit held discretionary function immunity barred most FTCA claims against Army Corps. 1,800+ deaths.</textarea>
+      </div>
+    </div>
+
+    <button class="run-btn" id="run-btn" onclick="runAnalysis()">Analyze liability gaps →</button>
+
+  </aside>
+
+  <main class="main" id="main-panel">
+    <div class="empty-state">
+      <h2>Ready to analyze</h2>
+      <p>Enter your API key, paste any statute (or use a preset), then click Analyze. The map will show which actors face legal accountability — and where the law fails.</p>
+    </div>
+  </main>
+</div>
+
+<script>
+var PRESETS = {
+  stafford: 'Robert T. Stafford Disaster Relief and Emergency Assistance Act, §403 (42 U.S.C. §5170b): Federal agencies may on the direction of the President provide assistance essential to meeting immediate threats to life and property resulting from a major disaster. Federal agencies shall coordinate all disaster relief assistance and provide accelerated Federal assistance where necessary to save lives, prevent human suffering, or mitigate severe damage. No liability shall attach to the United States Government for any claim based upon the exercise or performance of or the failure to exercise or perform a discretionary function or duty by a Federal employee.',
+  ftca: 'Federal Tort Claims Act, 28 U.S.C. §2680: The provisions of this chapter shall not apply to any claim based upon the exercise or performance of or the failure to exercise or perform a discretionary function or duty on the part of a federal agency or employee of the Government, whether or not the discretion involved be abused. The United States shall be liable in the same manner and to the same extent as a private individual under like circumstances, but shall not be liable for punitive damages.',
+  puc: 'California Public Utilities Code §451: Every public utility shall furnish and maintain such adequate, efficient, just, and reasonable service, instrumentalities, equipment, and facilities, as are necessary to promote the safety, health, comfort, and convenience of its patrons, employees, and the public. Every public utility shall maintain its lines, instrumentalities, and facilities in such condition as to enable it to fulfill its duty to the public.'
+};
+
+function loadStatute(k) { document.getElementById('statute-input').value = PRESETS[k]; }
+
+function badgeClass(s) {
+  s = (s||'').toLowerCase();
+  if (s.indexOf('gap')>-1||s.indexOf('no liability')>-1||s.indexOf('immune')>-1) return 'b-gap';
+  if (s.indexOf('partial')>-1||s.indexOf('capped')>-1||s.indexOf('limited')>-1) return 'b-partial';
+  if (s.indexOf('covered')>-1||s.indexOf('clear')>-1) return 'b-covered';
+  if (s.indexOf('contested')>-1||s.indexOf('litigation')>-1) return 'b-contested';
+  return 'b-unknown';
+}
+
+function renderResults(parsed, names) {
+  var actors = parsed.actors || ['Utility company','Federal agency','State regulator','Local government','Insurer'];
+  var keys = ['case1','case2','case3'];
+  var gapCount = 0;
+  keys.forEach(function(k){ actors.forEach(function(a){ if(badgeClass(((parsed.matrix||{})[k]||{})[a] && ((parsed.matrix||{})[k]||{})[a].status)==='b-gap') gapCount++; }); });
+
+  var h = '<div class="results">';
+
+  h += '<div><div class="section-head">Coverage key</div><div class="legend">';
+  h += '<div class="legend-item"><div class="ldot" style="background:#E24B4A"></div>Gap — no liability path</div>';
+  h += '<div class="legend-item"><div class="ldot" style="background:#EF9F27"></div>Partial — capped or limited</div>';
+  h += '<div class="legend-item"><div class="ldot" style="background:#639922"></div>Covered — clear path</div>';
+  h += '<div class="legend-item"><div class="ldot" style="background:#7F77DD"></div>Contested — litigation</div>';
+  h += '</div></div>';
+
+  h += '<div><div class="section-head">Actor liability matrix</div><div class="matrix-card">';
+  h += '<div class="matrix-card-header"><h2>Cross-case liability coverage</h2><span>' + gapCount + ' gaps across ' + keys.length + ' cases</span></div>';
+  h += '<div class="matrix-scroll"><table><thead><tr><th>Actor</th>';
+  names.forEach(function(n){ h += '<th class="cc">'+n+'</th>'; });
+  h += '</tr></thead><tbody>';
+  actors.forEach(function(actor){
+    h += '<tr><td class="ac">'+actor+'</td>';
+    keys.forEach(function(k){
+      var cell = ((parsed.matrix||{})[k]||{})[actor]||{status:'Unknown',note:''};
+      var cls = badgeClass(cell.status);
+      var short = cell.status.replace('— no liability path','').replace('— capped/limited','').replace('— clear path','').replace('— in litigation','').trim();
+      h += '<td class="sc"><span class="badge '+cls+'">'+short+'</span>';
+      if(cell.note) h += '<div class="cell-note">'+cell.note+'</div>';
+      h += '</td>';
+    });
+    h += '</tr>';
+  });
+  h += '</tbody></table></div></div></div>';
+
+  if(parsed.patterns&&parsed.patterns.length){
+    var dotColors=['#E24B4A','#E24B4A','#EF9F27','#7F77DD','#639922'];
+    h += '<div><div class="section-head">Cross-case patterns</div><div class="pattern-card">';
+    parsed.patterns.forEach(function(p,i){
+      h += '<div class="pattern-item"><div class="pdot" style="background:'+dotColors[i%dotColors.length]+';opacity:.8"></div><span>'+p+'</span></div>';
+    });
+    h += '</div></div>';
+  }
+
+  if(parsed.reform_argument){
+    h += '<div><div class="section-head">Legislative reform argument</div>';
+    h += '<div class="reform-card"><div class="reform-label">Policy memo hook</div>'+parsed.reform_argument+'</div></div>';
+  }
+
+  h += '</div>';
+  document.getElementById('main-panel').innerHTML = h;
+}
+
+function runAnalysis() {
+  var apiKey = document.getElementById('api-key').value.trim();
+  var statute = document.getElementById('statute-input').value.trim();
+  var c1n = document.getElementById('case1-name').value.trim()||'Case 1';
+  var c1t = document.getElementById('case1-text').value.trim();
+  var c2n = document.getElementById('case2-name').value.trim()||'Case 2';
+  var c2t = document.getElementById('case2-text').value.trim();
+  var c3n = document.getElementById('case3-name').value.trim()||'Case 3';
+  var c3t = document.getElementById('case3-text').value.trim();
+
+  if(!apiKey){alert('Please enter your Anthropic API key.');return;}
+  if(!statute){alert('Please paste a statute or use a preset.');return;}
+
+  document.getElementById('run-btn').disabled = true;
+  document.getElementById('main-panel').innerHTML = '<div class="loading-state"><div class="spinner"></div><span>Analyzing all cases against your statute…</span></div>';
+
+  var casesText = '';
+  if(c1t) casesText += '1. '+c1n.toUpperCase()+': '+c1t+'\n\n';
+  if(c2t) casesText += '2. '+c2n.toUpperCase()+': '+c2t+'\n\n';
+  if(c3t) casesText += '3. '+c3n.toUpperCase()+': '+c3t;
+
+  var prompt = 'You are a legal analyst specializing in disaster liability law. Analyze this statute against the disaster scenarios.\n\nSTATUTE:\n'+statute+'\n\nCASES:\n'+casesText+'\n\nReturn ONLY valid JSON with NO markdown, NO backticks, NO explanation:\n{"actors":["Utility company","Federal agency","State regulator","Local government","Insurer"],"matrix":{"case1":{"Utility company":{"status":"STATUS","note":"under 12 words"},"Federal agency":{"status":"STATUS","note":"under 12 words"},"State regulator":{"status":"STATUS","note":"under 12 words"},"Local government":{"status":"STATUS","note":"under 12 words"},"Insurer":{"status":"STATUS","note":"under 12 words"}},"case2":{"Utility company":{"status":"STATUS","note":"under 12 words"},"Federal agency":{"status":"STATUS","note":"under 12 words"},"State regulator":{"status":"STATUS","note":"under 12 words"},"Local government":{"status":"STATUS","note":"under 12 words"},"Insurer":{"status":"STATUS","note":"under 12 words"}},"case3":{"Utility company":{"status":"STATUS","note":"under 12 words"},"Federal agency":{"status":"STATUS","note":"under 12 words"},"State regulator":{"status":"STATUS","note":"under 12 words"},"Local government":{"status":"STATUS","note":"under 12 words"},"Insurer":{"status":"STATUS","note":"under 12 words"}}},"patterns":["Cross-case observation 1","Observation 2","Observation 3"],"reform_argument":"2-3 sentences arguing for specific legislative reform naming the exact provision that fails."}\n\nReplace every STATUS with exactly one of: Gap — no liability path | Partial — capped/limited | Covered — clear path | Contested — in litigation\nBase all analysis on the statute text provided.';
+
+  fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-calls': 'true'
+    },
+    body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 2000, messages: [{role:'user',content:prompt}] })
+  })
+  .then(function(r){
+    if(!r.ok) return r.json().then(function(e){throw new Error(e.error&&e.error.message?e.error.message:'API error '+r.status);});
+    return r.json();
+  })
+  .then(function(data){
+    var text='';
+    (data.content||[]).forEach(function(b){if(b.type==='text')text+=b.text;});
+    var clean=text.replace(/```json/g,'').replace(/```/g,'').trim();
+    var parsed=JSON.parse(clean);
+    renderResults(parsed,[c1n,c2n,c3n]);
+  })
+  .catch(function(err){
+    document.getElementById('main-panel').innerHTML='<div style="padding:1.5rem"><div class="error-box"><strong>Error:</strong> '+err.message+' — Check your API key is correct and try again.</div></div>';
+  })
+  .finally(function(){ document.getElementById('run-btn').disabled=false; });
+}
+</script>
+</body>
+</html>
